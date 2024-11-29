@@ -14,6 +14,10 @@ int attendanceCount = 0;
 String validCards[] = {"1234ABCD", "5678EFGH", "9101IJKL", "1121MNOP", "3141QRST"};
 int numValidCards = sizeof(validCards) / sizeof(validCards[0]); // Number of valid cards
 
+// Array to store already counted card IDs
+String countedCards[10]; // Adjust the size if more cards are expected
+int numCountedCards = 0; // Tracks the number of counted cards
+
 void setup() {
   Serial.begin(9600);    // Start UART communication
 
@@ -37,6 +41,7 @@ void loop() {
     lcd.clear();
 
     bool isValid = false; // Flag to check if the card is valid
+    bool isCounted = false; // Flag to check if the card is already counted
 
     // Check if received ID matches any valid card
     for (int i = 0; i < numValidCards; i++) {
@@ -46,9 +51,18 @@ void loop() {
       }
     }
 
-    if (isValid) {
-      // If the card is valid, increment attendance count and provide feedback
+    // Check if the card is already counted
+    for (int i = 0; i < numCountedCards; i++) {
+      if (receivedID == countedCards[i]) {
+        isCounted = true;
+        break;
+      }
+    }
+
+    if (isValid && !isCounted) {
+      // If the card is valid and not already counted, increment attendance count and provide feedback
       attendanceCount++;
+      countedCards[numCountedCards++] = receivedID; // Add the card to counted cards list
       lcd.print("Access Granted");
       lcd.setCursor(0, 1);  // Move to the second line
       lcd.print("Count: ");
@@ -61,6 +75,10 @@ void loop() {
       digitalWrite(GREEN_LED, LOW); // Turn off Green LED
       noTone(BUZZER);              // Stop the buzzer sound
       delay(1000);                 // Wait for 1 second before next input
+    } else if (isCounted) {
+      // If the card is already counted
+      lcd.print("Already Counted");
+      delay(2000); // Display the message for 2 seconds
     } else {
       // If the card is invalid
       lcd.print("Access Denied");
